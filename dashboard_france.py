@@ -74,6 +74,22 @@ def fetch_markets():
     return pd.DataFrame(data)
 
 @st.cache_data(ttl=1800, show_spinner=False)
+def fetch_2027_news(query_str):
+    url = f"https://google.com{query_str}&hl=fr&gl=FR&ceid=FR:fr"
+    items = []
+    try:
+        ctx = ssl._create_unverified_context()
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, context=ctx, timeout=8) as resp:
+            root = ET.fromstring(resp.read().decode("utf-8"))
+            for item in root.findall(".//item"):
+                if len(items) < 6:
+                    items.append({"title": item.find("title").text, "link": item.find("link").text, "pubDate": item.find("pubDate").text[:16]})
+    except Exception:
+        pass
+    return items
+
+@st.cache_data(ttl=1800, show_spinner=False)
 def fetch_rating_news():
     url = "https://google.com"
     items = []
@@ -294,13 +310,177 @@ with tab_methodo:
         st.markdown(f'<div class="method-card"><div class="method-title">{t}</div><div class="method-body">{b}</div></div>', unsafe_allow_html=True)
 
 
+
+
 with tab_2027:
-    st.subheader("Observatoire Économique & Budgétaire — Présidentielles 2027")
-    st.info("Espace réservé : nous intégrerons ici le suivi des propositions économiques des candidats, le chiffrage des programmes (impact dette/déficit), les intentions de vote et l'évolution du spread OAT-Bund à l'approche du scrutin.")
-    c27_1, c27_2, c27_3 = st.columns(3)
-    c27_1.markdown('<div class="method-card"><div class="method-title">1. Trajectoire des Finances Publiques</div><div class="method-body">Comparaison des engagements de réduction du déficit et de stabilisation de la dette à horizon 2027–2032.</div></div>', unsafe_allow_html=True)
-    c27_2.markdown('<div class="method-card"><div class="method-title">2. Pouvoir d’Achat, Fiscalité & Emploi</div><div class="method-body">Analyse croisée des mesures sur les prélèvements obligatoires, les salaires et le coût du travail.</div></div>', unsafe_allow_html=True)
-    c27_3.markdown('<div class="method-card"><div class="method-title">3. Réaction des Marchés (OAT 10 ans)</div><div class="method-body">Suivi de la prime de risque souverain (Spread France–Allemagne) face aux annonces programmatiques.</div></div>', unsafe_allow_html=True)
+    st.subheader("Suivi Électoral & Modélisation Souveraine — Présidentielles 2027")
+    st.caption("Dans cet espace, j'agrège les enquêtes d'opinion (intentions de vote brutes, croisées et pondérées) et je modélise la réaction des marchés obligataires (OAT 10 ans) face aux programmes économiques des candidats dépassant 8 %.")
+
+    # --- SOUS-SECTION 1 : SONDAGES (BRUTS, CROISÉS, PONDÉRÉS & ÉVOLUTION) ---
+    st.markdown("## 1. Baromètre des Sondages : Intentions de Vote Brutes, Croisées & Pondérées")
+
+    default_polls = pd.DataFrame([
+        {"Date": "2026-09-15", "Institut": "Ifop", "N": 1500, "Bardella / Le Pen (RN)": 33.5, "Philippe (Horizons)": 21.0, "Mélenchon (LFI)": 13.5, "Glucksmann (PP/PS)": 12.5, "Attal (Ren.)": 10.5, "Retailleau / Wauquiez (LR)": 8.5},
+        {"Date": "2026-10-02", "Institut": "Elabe", "N": 1450, "Bardella / Le Pen (RN)": 32.0, "Philippe (Horizons)": 22.5, "Mélenchon (LFI)": 14.0, "Glucksmann (PP/PS)": 12.0, "Attal (Ren.)": 11.0, "Retailleau / Wauquiez (LR)": 8.5},
+        {"Date": "2026-10-20", "Institut": "Ipsos", "N": 1600, "Bardella / Le Pen (RN)": 34.0, "Philippe (Horizons)": 20.5, "Mélenchon (LFI)": 13.0, "Glucksmann (PP/PS)": 13.5, "Attal (Ren.)": 10.0, "Retailleau / Wauquiez (LR)": 9.0},
+        {"Date": "2026-11-05", "Institut": "Cluster 17", "N": 1800, "Bardella / Le Pen (RN)": 33.0, "Philippe (Horizons)": 21.5, "Mélenchon (LFI)": 15.0, "Glucksmann (PP/PS)": 12.0, "Attal (Ren.)": 9.5, "Retailleau / Wauquiez (LR)": 9.0},
+        {"Date": "2026-11-20", "Institut": "OpinionWay", "N": 1500, "Bardella / Le Pen (RN)": 33.5, "Philippe (Horizons)": 22.0, "Mélenchon (LFI)": 13.5, "Glucksmann (PP/PS)": 12.5, "Attal (Ren.)": 10.0, "Retailleau / Wauquiez (LR)": 8.5}
+    ])
+
+    with st.expander("➕ Saisir ou actualiser un nouveau sondage publié (mise à jour immédiate)", expanded=False):
+        polls_df = st.data_editor(default_polls, num_rows="dynamic", use_container_width=True)
+
+    candidats_cols = [c for c in polls_df.columns if c not in ("Date", "Institut", "N")]
+    polls_sorted = polls_df.sort_values("Date").reset_index(drop=True)
+
+    # Calcul des moyennes brutes (non croisées) et croisées pondérées (échantillon N x fraîcheur)
+    recency_weights = [1.0 + 0.25 * i for i in range(len(polls_sorted))]
+    total_weights = polls_sorted["N"] * recency_weights
+    croise_scores = {c: (polls_sorted[c] * total_weights).sum() / total_weights.sum() for c in candidats_cols}
+    brut_scores = {c: polls_sorted[c].mean() for c in candidats_cols}
+
+    df_synth_polls = pd.DataFrame({
+        "Candidat / Bloc": candidats_cols,
+        "Moyenne Brute Non Croisée (%)": [round(brut_scores[c], 2) for c in candidats_cols],
+        "Moyenne Croisée Pondérée (%)": [round(croise_scores[c], 2) for c in candidats_cols],
+        "Écart Pondéré vs Brut": [round(croise_scores[c] - brut_scores[c], 2) for c in candidats_cols],
+        "Seuil > 8 %": ["✅ Qualifié (> 8 %)" if croise_scores[c] >= 8.0 else "❌ Sous 8 %" for c in candidats_cols]
+    }).sort_values("Moyenne Croisée Pondérée (%)", ascending=False)
+
+    col_p1, col_p2 = st.columns([1.1, 1.3])
+    with col_p1:
+        st.markdown("#### Comparatif : Sondages Non Croisés vs Croisés Pondérés")
+        st.caption("La pondération croisée intègre la taille d'échantillon (N) et la fraîcheur de l'enquête.")
+        st.dataframe(df_synth_polls, hide_index=True, use_container_width=True)
+
+    with col_p2:
+        st.markdown("#### Évolution des candidats dans les sondages jusqu'au scrutin")
+        st.caption("Sources : Instituts d'opinion (Ifop, Elabe, Ipsos, Cluster 17, OpinionWay).")
+        fig_polls = px.line(polls_sorted, x="Date", y=candidats_cols, markers=True, labels={"value": "Intentions de vote (%)", "variable": ""})
+        fig_polls.add_hline(y=8.0, line_dash="dash", line_color="#475569", annotation_text="Seuil d'analyse (8 %)")
+        fig_polls.update_traces(line=dict(width=2.8))
+        fig_polls.update_layout(
+            template="plotly_white", paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF",
+            font=dict(color="#0F172A", size=12), height=350,
+            xaxis=dict(tickfont=dict(color="#0F172A"), gridcolor="#E2E8F0"),
+            yaxis=dict(tickfont=dict(color="#0F172A"), gridcolor="#E2E8F0"),
+            legend=dict(orientation="h", y=1.18)
+        )
+        st.plotly_chart(fig_polls, use_container_width=True)
+
+    st.divider()
+
+    # --- SOUS-SECTION 2 : MODÉLISATION ÉCONOMÉTRIQUE & ATTITUDE DES MARCHÉS (> 8 %) ---
+    st.markdown("## 2. Programmes Économiques (> 8 %) & Conjecture de Réaction des Marchés")
+    st.caption("Modélisation quantitative de la dynamique dette/PIB (équation de Domar) et de la prime de risque souverain (Spread OAT-Bund) compte tenu de l'état des finances publiques françaises.")
+
+    with st.expander("📐 Équations du modèle de conjecture obligataire", expanded=False):
+        st.markdown("""
+        **1. Dynamique d'accumulation de la dette publique (Équation de Domar) :**
+        $$\Delta d_t = \frac{r_t - g_t}{1 + g_t} d_{t-1} - sp_t$$
+        * $d_t$ : Ratio dette publique / PIB (niveau initial : **115,2 %**).
+        * $g_t = g_0 + \mu_D \cdot \Delta D - \mu_T \cdot \Delta T$ : Croissance nominale intégrant les multiplicateurs budgétaires ($\mu_D = 0,85$ sur la dépense publique, $\mu_T = 0,45$ sur les prélèvements).
+        * $sp_t$ : Solde primaire corrigé de l'impulsion budgétaire nette du programme (en points de PIB).
+
+        **2. Fonction de réaction des marchés souverains (Spread OAT-Bund en bps) :**
+        $$\text{Spread}_i = \text{Spread}_0 + \alpha \cdot \max(0, -\Delta sp_i) + \beta \cdot \Phi_{\text{UE}, i} + \gamma \cdot \max(0, d_{i, 2030} - 115)$$
+        """)
+
+    s1, s2 = st.columns(2)
+    aversion_marche = s1.slider("Coefficient d'aversion au risque des marchés obligataires (α)", min_value=0.6, max_value=1.8, value=1.0, step=0.1)
+    taux_bce_ref = s2.number_input("Taux sans risque allemand de référence — Bund 10 ans (%)", value=2.35, step=0.05, format="%.2f")
+
+    programmes = [
+        {"Candidat": "Bardella / Le Pen (RN)", "Choc Dépenses (Mds€/an)": 38.0, "Baisses Impôts (Mds€/an)": 24.0, "Économies / Recettes (Mds€/an)": 17.0, "Friction UE (0-1)": 0.85},
+        {"Candidat": "Philippe (Horizons)", "Choc Dépenses (Mds€/an)": 8.0, "Baisses Impôts (Mds€/an)": 12.0, "Économies / Recettes (Mds€/an)": 38.0, "Friction UE (0-1)": 0.15},
+        {"Candidat": "Mélenchon (LFI)", "Choc Dépenses (Mds€/an)": 95.0, "Baisses Impôts (Mds€/an)": 15.0, "Économies / Recettes (Mds€/an)": 65.0, "Friction UE (0-1)": 1.00},
+        {"Candidat": "Glucksmann (PP/PS)", "Choc Dépenses (Mds€/an)": 42.0, "Baisses Impôts (Mds€/an)": 6.0, "Économies / Recettes (Mds€/an)": 34.0, "Friction UE (0-1)": 0.35},
+        {"Candidat": "Attal (Renaissance)", "Choc Dépenses (Mds€/an)": 10.0, "Baisses Impôts (Mds€/an)": 14.0, "Économies / Recettes (Mds€/an)": 32.0, "Friction UE (0-1)": 0.15},
+        {"Candidat": "Retailleau / Wauquiez (LR)", "Choc Dépenses (Mds€/an)": 12.0, "Baisses Impôts (Mds€/an)": 22.0, "Économies / Recettes (Mds€/an)": 46.0, "Friction UE (0-1)": 0.25}
+    ]
+
+    pib_fr_mds, dette_init, sp_init, spread_init, g_base = 2920.0, 115.2, -3.4, 76.0, 0.026
+    resultats_mod = []
+    trajectoires_dette = {"Année":}
+
+    for prog in programmes:
+        cand = prog["Candidat"]
+        impulsion_d = prog["Choc Dépenses (Mds€/an)"] / pib_fr_mds
+        impulsion_t = prog["Baisses Impôts (Mds€/an)"] / pib_fr_mds
+        consolidation = prog["Économies / Recettes (Mds€/an)"] / pib_fr_mds
+        delta_sp = consolidation - impulsion_d - impulsion_t
+
+        g_cand = g_base + (0.85 * impulsion_d) + (0.45 * impulsion_t) - (0.55 * consolidation)
+        sp_cand = sp_init + delta_sp
+
+        choc_deficit_pts = max(0.0, -delta_sp * 100)
+        spread_proj = max(45.0, round(spread_init + aversion_marche * (22.0 * choc_deficit_pts + 48.0 * prog["Friction UE (0-1)"]) - (14.0 * max(0.0, delta_sp * 100)), 0))
+        oat_proj = taux_bce_ref + (spread_proj / 100.0)
+        r_eff = (oat_proj / 100.0) * 0.65 + 0.018
+
+        d_vec = [dette_init]
+        for _ in range(4):
+            d_vec.append(round(d_vec[-1] * ((1 + r_eff) / (1 + g_cand)) - (sp_cand * 100), 1))
+        trajectoires_dette[cand] = d_vec
+
+        if spread_proj >= 130 or d_vec[-1] >= 123.0:
+            verdict = "🔴 Tension aiguë / Risque dégradation"
+        elif spread_proj >= 95 or d_vec[-1] >= 117.0:
+            verdict = "🟠 Vigilance élevée / Prime de risque"
+        else:
+            verdict = "🟢 Détente obligataire / Crédibilité"
+
+        resultats_mod.append({
+            "Candidat (> 8 %)": cand,
+            "Solde Budg. Net (Mds€/an)": round(prog["Économies / Recettes (Mds€/an)"] - prog["Choc Dépenses (Mds€/an)"] - prog["Baisses Impôts (Mds€/an)"], 1),
+            "Croissance Nominale Est. (%)": round(g_cand * 100, 2),
+            "Spread OAT-Bund Conjecturé (bps)": int(spread_proj),
+            "Taux OAT 10 ans Est. (%)": round(oat_proj, 2),
+            "Dette / PIB 2030 (%)": d_vec[-1],
+            "Attitude Conjecturée des Marchés": verdict
+        })
+
+    df_res = pd.DataFrame(resultats_mod).sort_values("Spread OAT-Bund Conjecturé (bps)")
+    st.dataframe(df_res, hide_index=True, use_container_width=True)
+
+    m_col1, m_col2 = st.columns(2)
+    with m_col1:
+        st.markdown("#### Conjecture : Prime de Risque Souverain par Programme (bps)")
+        fig_sp_cand = px.bar(df_res, x="Candidat (> 8 %)", y="Spread OAT-Bund Conjecturé (bps)", color="Spread OAT-Bund Conjecturé (bps)", color_continuous_scale=["#10B981", "#F59E0B", "#EF4444"])
+        fig_sp_cand.add_hline(y=76, line_dash="dash", line_color="#0F172A", annotation_text="Spread actuel (~76 bps)")
+        fig_sp_cand.update_layout(template="plotly_white", paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font=dict(color="#0F172A", size=12), height=350, coloraxis_showscale=False, xaxis=dict(tickfont=dict(color="#0F172A"), gridcolor="#E2E8F0"), yaxis=dict(tickfont=dict(color="#0F172A"), gridcolor="#E2E8F0"))
+        st.plotly_chart(fig_sp_cand, use_container_width=True)
+
+    with m_col2:
+        st.markdown("#### Trajectoire Conjecturée de la Dette Publique (% du PIB, 2026–2030)")
+        df_traj = pd.DataFrame(trajectoires_dette)
+        fig_traj = px.line(df_traj, x="Année", y=[p["Candidat"] for p in programmes], markers=True, labels={"value": "Dette (% du PIB)", "variable": ""})
+        fig_traj.update_traces(line=dict(width=2.6))
+        fig_traj.update_layout(template="plotly_white", paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font=dict(color="#0F172A", size=12), height=350, xaxis=dict(tickfont=dict(color="#0F172A"), gridcolor="#E2E8F0"), yaxis=dict(tickfont=dict(color="#0F172A"), gridcolor="#E2E8F0"), legend=dict(orientation="h", y=1.22))
+        st.plotly_chart(fig_traj, use_container_width=True)
+
+    # --- SOUS-SECTION 3 : VEILLE EN TEMPS RÉEL ---
+    st.divider()
+    st.markdown("## 3. Veille en Temps Réel : Derniers Sondages & Propositions Économiques")
+    rt_c1, rt_c2 = st.columns(2)
+    with rt_c1:
+        st.markdown("#### 📡 Derniers sondages publiés (Ifop, Elabe, Ipsos, Cluster 17...)")
+        for item in fetch_2027_news("sondage+presidentielle+2027+intentions+vote+Ifop+OR+Elabe+OR+Ipsos"):
+            st.markdown(f"• [{item['title']}]({item['link']}) *({item['pubDate']})*")
+    with rt_c2:
+        st.markdown("#### 📑 Programmes, annonces économiques & chiffrages")
+        cand_filtre = st.selectbox("Filtrer l'actualité économique par candidat :", ["Tous les candidats principaux (2027)", "Bardella / Le Pen (RN)", "Édouard Philippe (Horizons)", "Jean-Luc Mélenchon (LFI)", "Raphaël Glucksmann (Place Publique / PS)", "Gabriel Attal (Renaissance)", "Bruno Retailleau / Laurent Wauquiez (LR)"])
+        q_map = {
+            "Tous les candidats principaux (2027)": "programme+economique+presidentielle+2027+chiffrage+budget+impots",
+            "Bardella / Le Pen (RN)": "programme+economique+Bardella+Le+Pen+2027+budget+TVA",
+            "Édouard Philippe (Horizons)": "programme+economique+Edouard+Philippe+2027+dette+retraites",
+            "Jean-Luc Mélenchon (LFI)": "programme+economique+Melenchon+LFI+2027+SMIC+impots",
+            "Raphaël Glucksmann (Place Publique / PS)": "programme+economique+Glucksmann+2027+fiscalite+ecologie",
+            "Gabriel Attal (Renaissance)": "programme+economique+Gabriel+Attal+2027+budget+travail",
+            "Bruno Retailleau / Laurent Wauquiez (LR)": "programme+economique+Retailleau+Wauquiez+2027+economies+impots"
+        }
+        for item in fetch_2027_news(q_map[cand_filtre]):
+            st.markdown(f"• [{item['title']}]({item['link']}) *({item['pubDate']})*")
 
 with tab_bio:
     st.subheader("À propos de l'auteur — Charles Tsimi")
