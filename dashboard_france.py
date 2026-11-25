@@ -95,9 +95,10 @@ if st.session_state["admin_unlocked"]:
     labels_fr.append("🔒 Notes Privées")
     labels_en.append("🔒 Private Notes")
 
-tabs = st.tabs(labels_en if is_en else labels_fr)
-it_tabs = iter(tabs)
-with next(it_tabs):
+all_all_tabs = st.tabs(labels_en if is_en else labels_fr)
+tab_fr, tab_cac, tab_eu, tab_mat, tab_not, tab_2027, tab_sim, tab_src, tab_bio = all_tabs[:9]
+tab_fr, tab_cac, tab_eu, tab_mat, tab_not, tab_2027, tab_sim, tab_src, tab_bio = all_tabs[:9]
+with tab_fr:
     st.subheader("French Macroeconomic Trajectory (2006–2026) & Cross-Analysis" if is_en else "Indicateurs Économiques de la France (2006–2026 & Croisements)")
     last, prev = DATA_FR.tail(1).squeeze(), DATA_FR.tail(2).head(1).squeeze()
     pmi_comp = 48.2
@@ -146,7 +147,7 @@ with next(it_tabs):
         st.plotly_chart(style_chart(fig_p), use_container_width=True)
         st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : INSEE (Comptes Nationaux) · Eurostat</div>', unsafe_allow_html=True)
 
-with next(it_tabs):
+with tab_cac:
     st.subheader("Paris Stock Exchange (CAC 40) & Live Market Flash" if is_en else "Bourse de Paris — CAC 40 & Flash Infos Financiers")
     cac = get_ticker_hist("^FCHI", "1y")
     col_b1, col_b2 = st.columns([1.4, 1.0])
@@ -163,7 +164,7 @@ with next(it_tabs):
         for it in get_rss("CAC+40+Bourse+Paris+Euronext+Boursorama+OR+Les+Echos", 4):
             st.markdown(f'<div class="info-card"><b><a href="{it["link"]}" target="_blank" style="text-decoration:none;color:#0B1F3A;">{it["title"]}</a></b><br><span style="font-size:0.8rem;color:#64748B;">{it["date"]}</span></div>', unsafe_allow_html=True)
 
-with next(it_tabs):
+with tab_eu:
     st.subheader("Eurozone & Global Economy (GDP & Growth)" if is_en else "Zone Euro & Économie Mondiale (Croissance & PIB)")
     df_w = pd.DataFrame({"Année": list(range(2019, 2027)), "France": (1.9, -7.5, 6.8, 2.6, 1.1, 1.1, 0.7, 1.0), "Zone Euro": (1.6, -6.1, 5.9, 3.4, 0.4, 0.8, 1.1, 1.3), "USA": (2.5, -2.2, 6.1, 2.5, 2.9, 2.8, 2.0, 2.1), "China": (6.0, 2.2, 8.4, 3.0, 5.2, 5.0, 4.5, 4.2), "World": (2.8, -2.7, 6.5, 3.5, 3.3, 3.2, 3.2, 3.3)})
     e1, e2, e3, e4 = st.columns(4)
@@ -174,7 +175,7 @@ with next(it_tabs):
     st.plotly_chart(style_chart(px.line(df_w, x="Année", y=["France", "Zone Euro", "USA", "China", "World"], markers=True), 380), use_container_width=True)
     st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : FMI (WEO) · Eurostat · Banque Mondiale · BCE</div>', unsafe_allow_html=True)
 
-with next(it_tabs):
+with tab_mat:
     st.subheader("Commodities & Procurement Decision Support (Real EUR € Costs)" if is_en else "Matières Premières & Décision Achats (Coûts Réels en Euros €)")
     fx = get_ticker_hist("EURUSD=X", "6mo")
     eurusd = fx["Close"].tail(1).squeeze() if not fx.empty else 1.08
@@ -199,7 +200,22 @@ with next(it_tabs):
         st.plotly_chart(style_chart(px.line(pd.DataFrame(series_eur)), 350), use_container_width=True)
         st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : ICE Futures · COMEX · CBOT · BCE (EUR/USD)</div>', unsafe_allow_html=True)
 
-with next(it_tabs):
+with tab_not:
+    st.subheader("Sovereign Credit Ratings & Rating Agency Scale" if is_en else "Notations Financières de la France & Décryptage des Agences")
+    n1, n2, n3, n4 = st.columns(4)
+    n1.markdown('<div class="rating-card"><h4>Standard & Poor\'s</h4><h2>AA- (Negative)</h2><p>3 notches below AAA</p></div>', unsafe_allow_html=True)
+    n2.markdown('<div class="rating-card"><h4>Moody\'s</h4><h2>Aa3 (Stable)</h2><p>Equivalent to AA-</p></div>', unsafe_allow_html=True)
+    n3.markdown('<div class="rating-card"><h4>Fitch Ratings</h4><h2>AA- (Negative)</h2><p>3 notches below AAA</p></div>', unsafe_allow_html=True)
+    n4.markdown('<div class="rating-card"><h4>Scope Ratings</h4><h2>AA- (Stable)</h2><p>ECB-recognized EU agency</p></div>', unsafe_allow_html=True)
+    st.divider()
+    st.dataframe(pd.DataFrame([
+        {"Grade": "Prime (AAA / Aaa)", "Meaning": "Minimal default risk (Germany, Netherlands). Lowest borrowing yields."},
+        {"Grade": "High Grade (AA+ to AA- / Aa1 to Aa3)", "Meaning": "Current French sovereign tier. High institutional strength, sensitive to fiscal deficits."},
+        {"Grade": "Upper Medium (A+ to A-)", "Meaning": "Higher sensitivity to economic shocks; triggers higher sovereign risk spreads."},
+        {"Grade": "Lower Medium (BBB+ to BBB-)", "Meaning": "Threshold of Investment Grade (Italy). Below BB+ is Speculative ('Junk')."}
+    ]), hide_index=True, use_container_width=True)
+
+with tab_2027:
     st.subheader("2027 French Presidential Election — Polls, Market Model & Charles's Third Eye" if is_en else "Présidentielles 2027 — Sondages, Modélisation Souveraine & Le Troisième Œil de Charles")
     sub_s, sub_oeil, sub_p = st.tabs([
         "📊 Polls & Trajectories (> 10%)" if is_en else "📊 Sondages & Évolution (> 10 %)",
