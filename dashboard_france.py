@@ -198,3 +198,44 @@ with next(it_tabs):
     if series_eur:
         st.plotly_chart(style_chart(px.line(pd.DataFrame(series_eur)), 350), use_container_width=True)
         st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : ICE Futures · COMEX · CBOT · BCE (EUR/USD)</div>', unsafe_allow_html=True)
+
+with next(it_tabs):
+    st.subheader("2027 French Presidential Election — Polls, Market Model & Charles's Third Eye" if is_en else "Présidentielles 2027 — Sondages, Modélisation Souveraine & Le Troisième Œil de Charles")
+    sub_s, sub_oeil, sub_p = st.tabs([
+        "📊 Polls & Trajectories (> 10%)" if is_en else "📊 Sondages & Évolution (> 10 %)",
+        "👁️ Charles's Third Eye" if is_en else "👁️ Le Troisième Œil de Charles",
+        "📐 Programs & Markets" if is_en else "📐 Programmes & Marchés"
+    ])
+
+    polls_data = pd.DataFrame.from_records((
+        {"Date": "2026-06-15", "Source": "Ifop-Fiducial", "N": 1500, "Marine Le Pen": 34.0, "Édouard Philippe": 21.5, "Jean-Luc Mélenchon": 13.5, "Raphaël Glucksmann": 12.0, "Bruno Retailleau": 7.5, "Gabriel Attal": 5.5, "Éric Zemmour": 4.0, "David Lisnard": 1.5, "Nathalie Arthaud": 0.5},
+        {"Date": "2026-07-20", "Source": "Elabe / Les Échos", "N": 1480, "Marine Le Pen": 33.5, "Édouard Philippe": 22.0, "Jean-Luc Mélenchon": 14.0, "Raphaël Glucksmann": 12.5, "Bruno Retailleau": 7.0, "Gabriel Attal": 5.0, "Éric Zemmour": 4.0, "David Lisnard": 1.5, "Nathalie Arthaud": 0.5},
+        {"Date": "2026-09-10", "Source": "Ipsos / La Tribune", "N": 1600, "Marine Le Pen": 34.5, "Édouard Philippe": 20.5, "Jean-Luc Mélenchon": 13.0, "Raphaël Glucksmann": 13.0, "Bruno Retailleau": 8.0, "Gabriel Attal": 5.0, "Éric Zemmour": 3.8, "David Lisnard": 1.7, "Nathalie Arthaud": 0.5},
+        {"Date": "2026-10-18", "Source": "Cluster 17", "N": 1850, "Marine Le Pen": 33.0, "Édouard Philippe": 21.0, "Jean-Luc Mélenchon": 15.0, "Raphaël Glucksmann": 12.0, "Bruno Retailleau": 8.0, "Gabriel Attal": 5.0, "Éric Zemmour": 4.0, "David Lisnard": 1.5, "Nathalie Arthaud": 0.5},
+        {"Date": "2026-11-18", "Source": "OpinionWay / CNews", "N": 1520, "Marine Le Pen": 34.0, "Édouard Philippe": 21.5, "Jean-Luc Mélenchon": 14.0, "Raphaël Glucksmann": 12.5, "Bruno Retailleau": 7.5, "Gabriel Attal": 4.5, "Éric Zemmour": 4.0, "David Lisnard": 1.5, "Nathalie Arthaud": 0.5}
+    ))
+
+    with sub_s:
+        with st.expander("➕ Saisir ou actualiser une enquête publiée (recalcul immédiat)", expanded=False):
+            polls_df = st.data_editor(polls_data, num_rows="dynamic", use_container_width=True)
+        cands_all = tuple(c for c in polls_df.columns if c not in ("Date", "Source", "N"))
+        polls_s = polls_df.sort_values("Date").reset_index(drop=True)
+        w_tot = polls_s["N"] * pd.Series(tuple(1.0 + 0.25 * i for i in range(len(polls_s))))
+        brut_map = {c: round(float(polls_s[c].mean()), 2) for c in cands_all}
+        croise_map = {c: round(float((polls_s[c] * w_tot).sum() / w_tot.sum()), 2) for c in cands_all}
+        cands_sup10 = tuple(c for c in cands_all if croise_map[c] >= 10.0)
+
+        col_s1, col_s2 = st.columns((1.05, 1.35))
+        with col_s1:
+            st.dataframe(pd.DataFrame({"Candidat": cands_all, "Moy. Brute (%)": tuple(brut_map[c] for c in cands_all), "Moy. Croisée Pondérée (%)": tuple(croise_map[c] for c in cands_all), "Seuil > 10 %": tuple("✅ > 10 %" if croise_map[c] >= 10.0 else "< 10 %" for c in cands_all)}).sort_values("Moy. Croisée Pondérée (%)", ascending=False), hide_index=True, use_container_width=True)
+            st.caption("Sources : Ifop-Fiducial, Elabe, Ipsos, Cluster 17, OpinionWay.")
+        with col_s2:
+            st.markdown("#### Trajectoire dynamique croisée des candidats > 10 %")
+            fig_s10 = px.line(polls_s, x="Date", y=list(cands_sup10), markers=True, labels={"value": "Intentions (%)", "variable": ""})
+            fig_s10.add_hline(y=10.0, line_dash="dash", line_color="#475569", annotation_text="Seuil 10 %")
+            st.plotly_chart(style_chart(fig_s10, 340), use_container_width=True)
+            st.markdown('<div class="credit-tag">Graphique & Agrégation : Charles Tsimi | Sources : Instituts de sondages français (2026)</div>', unsafe_allow_html=True)
+
+        st.markdown("**📡 Dernières dépêches sondagières en temps réel :**")
+        for it in get_rss("sondage+presidentielle+2027+Le+Pen+OR+Philippe+OR+Melenchon+OR+Glucksmann+Ifop+OR+Elabe+OR+Ipsos", 4):
+            st.markdown(f"• [{it['title']}]({it['link']}) *({it['date']})*")
