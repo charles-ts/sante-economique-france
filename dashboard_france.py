@@ -96,8 +96,8 @@ if st.session_state["admin_unlocked"]:
     labels_en.append("🔒 Private Notes")
 
 
+
 tab_fr, tab_cac, tab_eu, tab_mat, tab_not, tab_2027, tab_sim, tab_src, tab_bio = st.tabs(labels_en if is_en else labels_fr)
-tab_fr, tab_cac, tab_eu, tab_mat, tab_not, tab_2027, tab_sim, tab_src, tab_bio = all_tabs[:9]
 with tab_fr:
     st.subheader("French Macroeconomic Trajectory (2006–2026) & Cross-Analysis" if is_en else "Indicateurs Économiques de la France (2006–2026 & Croisements)")
     last, prev = DATA_FR.tail(1).squeeze(), DATA_FR.tail(2).head(1).squeeze()
