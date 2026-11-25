@@ -7,7 +7,7 @@ import plotly.graph_objects as go
 import yfinance as yf
 from datetime import datetime
 
-st.set_page_config(page_title="Charles Tsimi | Economic Intelligence & Decision", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Charles Tsimi | Intelligence Économique & Décision", layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown("""<style>
 @import url('https://googleapis.com');
@@ -15,16 +15,21 @@ st.markdown("""<style>
 .stApp, [data-testid="stAppViewContainer"], [data-testid="stHeader"] { background-color: #EEF2F6 !important; color: #0F172A !important; font-family: 'Inter', sans-serif !important; }
 h1, h2, h3 { font-family: 'Playfair Display', Georgia, serif !important; color: #0B1F3A !important; }
 h4, p, span, label, div[data-testid="stMarkdownContainer"] { color: #1E293B !important; }
-.hero-box { background: linear-gradient(125deg, #0B1F3A 0%, #173763 100%); padding: 28px 34px; border-radius: 12px; border-bottom: 5px solid #C59B27; margin-bottom: 18px; box-shadow: 0 10px 25px rgba(11,31,58,0.15); }
+button[data-baseweb="tab"] { background-color: #FFFFFF !important; border: 1px solid #CBD5E1 !important; border-radius: 6px 6px 0 0 !important; padding: 8px 14px !important; margin-right: 4px !important; }
+button[data-baseweb="tab"] p { color: #334155 !important; font-weight: 600 !important; font-size: 0.88rem !important; }
+button[data-baseweb="tab"][aria-selected="true"] { background-color: #0B1F3A !important; border-color: #0B1F3A !important; border-bottom: 3px solid #C59B27 !important; }
+button[data-baseweb="tab"][aria-selected="true"] p { color: #FFFFFF !important; font-weight: 700 !important; }
+.hero-box { background: linear-gradient(125deg, #0B1F3A 0%, #173763 100%); padding: 26px 32px; border-radius: 12px; border-bottom: 5px solid #C59B27; margin-bottom: 18px; box-shadow: 0 10px 25px rgba(11,31,58,0.14); }
 .hero-kicker { font-size: 0.78rem; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #F3D06B !important; margin-bottom: 6px; }
-.hero-title { font-family: 'Playfair Display', Georgia, serif; font-size: 2.05rem; font-weight: 700; color: #FFFFFF !important; margin: 0 0 6px 0; }
-.hero-sub { font-size: 0.95rem; color: #E2E8F0 !important; margin: 0; }
-div[data-testid="stMetric"] { background: #FFFFFF !important; border: 1px solid #CBD5E1 !important; border-top: 4px solid #0B1F3A !important; padding: 15px !important; border-radius: 8px !important; box-shadow: 0 3px 10px rgba(15,23,42,0.04) !important; }
-div[data-testid="stMetricLabel"] p { color: #475569 !important; font-weight: 700 !important; font-size: 0.82rem !important; text-transform: uppercase !important; }
-div[data-testid="stMetricValue"] div { color: #0B1F3A !important; font-size: 1.45rem !important; font-weight: 800 !important; }
-.synth-card { background: #FFFFFF; border: 1px solid #CBD5E1; border-left: 6px solid #C59B27; padding: 20px 24px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(15,23,42,0.04); }
-.synth-title { font-family: 'Playfair Display', Georgia, serif; font-size: 1.2rem; font-weight: 700; color: #0B1F3A !important; margin-bottom: 8px; }
+.hero-title { font-family: 'Playfair Display', Georgia, serif; font-size: 2.0rem; font-weight: 700; color: #FFFFFF !important; margin: 0 0 6px 0; }
+.hero-sub { font-size: 0.94rem; color: #E2E8F0 !important; margin: 0; }
+div[data-testid="stMetric"] { background: #FFFFFF !important; border: 1px solid #CBD5E1 !important; border-top: 4px solid #0B1F3A !important; padding: 14px !important; border-radius: 8px !important; box-shadow: 0 3px 10px rgba(15,23,42,0.04) !important; }
+div[data-testid="stMetricLabel"] p { color: #475569 !important; font-weight: 700 !important; font-size: 0.8rem !important; text-transform: uppercase !important; }
+div[data-testid="stMetricValue"] div { color: #0B1F3A !important; font-size: 1.42rem !important; font-weight: 800 !important; }
+.synth-card { background: #FFFFFF; border: 1px solid #CBD5E1; border-left: 6px solid #C59B27; padding: 18px 22px; border-radius: 8px; margin-bottom: 18px; }
+.synth-title { font-family: 'Playfair Display', Georgia, serif; font-size: 1.18rem; font-weight: 700; color: #0B1F3A !important; margin-bottom: 8px; }
 .info-card { background: #FFFFFF; border: 1px solid #CBD5E1; border-left: 4px solid #0B1F3A; padding: 16px 20px; border-radius: 8px; margin-bottom: 14px; }
+.rating-card { background: #FFFFFF; border: 1px solid #CBD5E1; border-top: 4px solid #0B1F3A; padding: 16px; border-radius: 8px; text-align: center; }
 .credit-tag { font-size: 0.78rem; color: #64748B !important; font-style: italic; margin-top: -6px; margin-bottom: 16px; }
 .footer-discrete { margin-top: 44px; padding-top: 14px; border-top: 1px solid #CBD5E1; text-align: center; font-size: 0.82rem; color: #64748B !important; }
 </style>""", unsafe_allow_html=True)
@@ -70,10 +75,12 @@ def style_chart(fig, h=340):
     fig.update_layout(template="plotly_white", paper_bgcolor="#FFFFFF", plot_bgcolor="#FFFFFF", font=dict(color="#0F172A", size=12), height=h, margin=dict(t=40, b=30, l=40, r=20), xaxis=dict(tickfont=dict(color="#0F172A"), gridcolor="#E2E8F0"), yaxis=dict(tickfont=dict(color="#0F172A"), gridcolor="#E2E8F0"), legend=dict(orientation="h", y=1.14))
     return fig
 
-# --- EN-TÊTE & SÉLECTEUR DE LANGUE ---
+if "admin_unlocked" not in st.session_state:
+    st.session_state["admin_unlocked"] = False
+
 top_l, top_r = st.columns([5.5, 1.2])
 with top_r:
-    lang = st.radio("Langue / Language", ["🇫🇷 Français", "🇬🇧 English"], horizontal=True, label_visibility="collapsed")
+    lang = st.radio("Langue", ["🇫🇷 Français", "🇬🇧 English"], horizontal=True, label_visibility="collapsed")
 is_en = ("English" in lang)
 
 with top_l:
@@ -82,42 +89,15 @@ with top_l:
     sub_h = "Macroeconomic trajectories, fiscal sustainability, sovereign ratings, procurement & 2027 presidential scenarios." if is_en else "Analyse conjoncturelle, soutenabilité budgétaire, marchés financiers, décision achats et scénarios 2027."
     st.markdown(f'<div class="hero-box"><div class="hero-kicker">{kicker}</div><div class="hero-title">{title_h}</div><p class="hero-sub">{sub_h}</p></div>', unsafe_allow_html=True)
 
-# --- MENU DE NAVIGATION DÉROULANT JUSTE APRÈS LE TITRE ---
-if "admin_unlocked" not in st.session_state:
-    st.session_state["admin_unlocked"] = False
-
-menu_fr = [
-    "1. Indicateurs Économiques France",
-    "2. Bourse de Paris (CAC 40)",
-    "3. Europe & Économie Mondiale",
-    "4. Matières Premières & Décision Achats",
-    "5. Notations Financières & Agences",
-    "6. Présidentielles 2027",
-    "7. Simulateur Macro & Budgétaire",
-    "8. Sources, Glossaire & Monétisation",
-    "9. À propos — Charles Tsimi"
-]
-menu_en = [
-    "1. French Economic Indicators",
-    "2. Paris Stock Exchange (CAC 40)",
-    "3. Europe & Global Economy",
-    "4. Commodities & Procurement Intelligence",
-    "5. Sovereign Credit Ratings",
-    "6. 2027 French Presidential Election",
-    "7. Macro & Fiscal Simulator",
-    "8. Sources, Glossary & Monetization",
-    "9. About — Charles Tsimi"
-]
+labels_fr = ["🇫🇷 Économie France", "📈 Bourse CAC 40", "🌍 Europe & Monde", "🛢️ Matières Premières & Achats", "🏛️ Notations", "🗳️ Présidentielles 2027", "🎛️ Simulateur", "📚 Sources & Glossaire", "👤 Bio"]
+labels_en = ["🇫🇷 France Economy", "📈 CAC 40 Market", "🌍 Europe & World", "🛢️ Commodities & Procurement", "🏛️ Ratings", "🗳️ 2027 Election", "🎛️ Simulator", "📚 Sources & Glossary", "👤 Bio"]
 if st.session_state["admin_unlocked"]:
-    menu_fr.append("🔒 10. Générateur Privé de Notes (Auteur)")
-    menu_en.append("🔒 10. Private Briefing Generator (Author)")
+    labels_fr.append("🔒 Notes Privées")
+    labels_en.append("🔒 Private Notes")
 
-nav_label = "Select an analytical module:" if is_en else "Sélectionner une rubrique d'analyse :"
-choix = st.selectbox(nav_label, menu_en if is_en else menu_fr)
-sec_num = choix.split(".") if not choix.startswith("🔒") else "10"
-st.divider()
-if sec_num == "1":
-    st.subheader("1. French Macroeconomic Trajectory (2006–2026) & Cross-Analysis" if is_en else "1. Indicateurs Économiques de la France (2006–2026 & Croisements)")
+tabs = st.tabs(labels_en if is_en else labels_fr)
+with tabs.pop(0):
+    st.subheader("French Macroeconomic Trajectory (2006–2026) & Cross-Analysis" if is_en else "Indicateurs Économiques de la France (2006–2026 & Croisements)")
     last, prev = DATA_FR.tail(1).squeeze(), DATA_FR.tail(2).head(1).squeeze()
     pmi_comp = 48.2
     g_nom = last["Croissance"] + last["Inflation"]
@@ -141,7 +121,7 @@ if sec_num == "1":
         fig_ph = px.scatter(DATA_FR, x="Chomage", y="Inflation", text="Année", color="Année", color_continuous_scale="Blues")
         fig_ph.update_traces(textposition="top center", marker=dict(size=10))
         st.plotly_chart(style_chart(fig_ph), use_container_width=True)
-        st.markdown('<div class="credit-tag">Chart: Charles Tsimi | Sources: INSEE · Eurostat (2006–2026)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : INSEE · Eurostat (2006–2026)</div>', unsafe_allow_html=True)
     with g2:
         st.markdown("#### Debt Sustainability: 10Y OAT Rate vs Nominal Growth" if is_en else "#### Croisement II : Soutenabilité de la Dette (Taux OAT vs Croissance Nominale)")
         df_s = DATA_FR.copy()
@@ -149,10 +129,24 @@ if sec_num == "1":
         fig_sn = px.line(df_s, x="Année", y=["OAT_10Y", "Croissance_Nominale"], labels={"value": "%", "variable": ""})
         fig_sn.for_each_trace(lambda t: t.update(name="OAT 10Y (%)" if t.name == "OAT_10Y" else ("Nominal Growth (%)" if is_en else "Croissance Nominale (%)"), line=dict(width=3, color="#DC2626" if t.name == "OAT_10Y" else "#0B1F3A")))
         st.plotly_chart(style_chart(fig_sn), use_container_width=True)
-        st.markdown('<div class="credit-tag">Chart: Charles Tsimi | Sources: ECB · Agence France Trésor (Bercy) · INSEE</div>', unsafe_allow_html=True)
+        st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : BCE · Agence France Trésor (Bercy) · INSEE</div>', unsafe_allow_html=True)
 
-elif sec_num == "2":
-    st.subheader("2. Paris Stock Exchange (CAC 40) & Live Market Flash" if is_en else "2. Bourse de Paris — CAC 40 & Flash Infos Financiers")
+    g3, g4 = st.columns(2)
+    with g3:
+        st.markdown("#### Trajectoire Budgétaire sur 20 ans : Dette (% PIB) & Solde Public (% PIB)")
+        fig_b = go.Figure()
+        fig_b.add_trace(go.Bar(x=DATA_FR["Année"], y=DATA_FR["Solde_PIB"], name="Solde Public (% PIB)", marker_color="#B45309"))
+        fig_b.add_trace(go.Scatter(x=DATA_FR["Année"], y=DATA_FR["Dette_PIB"]/10, name="Dette / 10 (échelle)", line=dict(color="#0B1F3A", width=3)))
+        st.plotly_chart(style_chart(fig_b), use_container_width=True)
+        st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : Eurostat (Notification EDP) · Bercy (Loi de Finances)</div>', unsafe_allow_html=True)
+    with g4:
+        st.markdown("#### Dynamique de Richesse Réelle (PIB Base 100 en 2006) & Taux de Chômage")
+        fig_p = px.line(DATA_FR, x="Année", y=["PIB_Vol", "Chomage"], labels={"value": "Indice / %", "variable": ""})
+        st.plotly_chart(style_chart(fig_p), use_container_width=True)
+        st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : INSEE (Comptes Nationaux) · Eurostat</div>', unsafe_allow_html=True)
+
+with tabs.pop(0):
+    st.subheader("Paris Stock Exchange (CAC 40) & Live Market Flash" if is_en else "Bourse de Paris — CAC 40 & Flash Infos Financiers")
     cac = get_ticker_hist("^FCHI", "1y")
     col_b1, col_b2 = st.columns([1.4, 1.0])
     with col_b1:
@@ -162,14 +156,14 @@ elif sec_num == "2":
             fig_c = px.area(cac.reset_index(), x="Date", y="Close", labels={"Close": "Points", "Date": ""})
             fig_c.update_traces(line_color="#0B1F3A", fillcolor="rgba(11,31,58,0.12)")
             st.plotly_chart(style_chart(fig_c, 360), use_container_width=True)
-            st.markdown('<div class="credit-tag">Chart: Charles Tsimi | Sources: Euronext Paris · Yahoo Finance</div>', unsafe_allow_html=True)
+            st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : Euronext Paris · Yahoo Finance</div>', unsafe_allow_html=True)
     with col_b2:
         st.markdown("#### 📰 Flash Infos Bourse (Boursorama, Les Échos, Zonebourse)")
         for it in get_rss("CAC+40+Bourse+Paris+Euronext+Boursorama+OR+Les+Echos", 4):
             st.markdown(f'<div class="info-card"><b><a href="{it["link"]}" target="_blank" style="text-decoration:none;color:#0B1F3A;">{it["title"]}</a></b><br><span style="font-size:0.8rem;color:#64748B;">{it["date"]}</span></div>', unsafe_allow_html=True)
 
-elif sec_num == "3":
-    st.subheader("3. Eurozone & Global Economy (GDP & Growth)" if is_en else "3. Zone Euro & Économie Mondiale (Croissance & PIB)")
+with tabs.pop(0):
+    st.subheader("Eurozone & Global Economy (GDP & Growth)" if is_en else "Zone Euro & Économie Mondiale (Croissance & PIB)")
     df_w = pd.DataFrame({"Année": list(range(2019, 2027)), "France": (1.9, -7.5, 6.8, 2.6, 1.1, 1.1, 0.7, 1.0), "Zone Euro": (1.6, -6.1, 5.9, 3.4, 0.4, 0.8, 1.1, 1.3), "USA": (2.5, -2.2, 6.1, 2.5, 2.9, 2.8, 2.0, 2.1), "China": (6.0, 2.2, 8.4, 3.0, 5.2, 5.0, 4.5, 4.2), "World": (2.8, -2.7, 6.5, 3.5, 3.3, 3.2, 3.2, 3.3)})
     e1, e2, e3, e4 = st.columns(4)
     e1.metric("World GDP (IMF)" if is_en else "PIB Mondial (FMI)", "$115 Tn", "+3.3 %")
@@ -177,21 +171,21 @@ elif sec_num == "3":
     e3.metric("ECB Deposit Rate" if is_en else "Taux Directeur BCE", "2.50 %", "ECB")
     e4.metric("US GDP Growth" if is_en else "Croissance États-Unis", "+2.1 %", "+1.1 pt vs FR")
     st.plotly_chart(style_chart(px.line(df_w, x="Année", y=["France", "Zone Euro", "USA", "China", "World"], markers=True), 380), use_container_width=True)
-    st.markdown('<div class="credit-tag">Chart: Charles Tsimi | Sources: IMF (WEO) · Eurostat · World Bank · ECB</div>', unsafe_allow_html=True)
+    st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : FMI (WEO) · Eurostat · Banque Mondiale · BCE</div>', unsafe_allow_html=True)
 
-elif sec_num == "4":
-    st.subheader("4. Commodities & Procurement Decision Support (Real EUR € Costs)" if is_en else "4. Matières Premières & Décision Achats (Coûts Réels en Euros €)")
+with tabs.pop(0):
+    st.subheader("Commodities & Procurement Decision Support (Real EUR € Costs)" if is_en else "Matières Premières & Décision Achats (Coûts Réels en Euros €)")
     fx = get_ticker_hist("EURUSD=X", "6mo")
     eurusd = fx["Close"].tail(1).squeeze() if not fx.empty else 1.08
     commods = [("Brent Oil", "BZ=F"), ("Copper", "HG=F"), ("Natural Gas", "NG=F"), ("Wheat", "ZW=F"), ("Gold", "GC=F")]
     cols_c = st.columns(6)
-    cols_c.metric("EUR / USD", f"{eurusd:.4f} $", "Forex")
+    cols_c.pop(0).metric("EUR / USD", f"{eurusd:.4f} $", "Forex")
     series_eur, var_list = {}, []
-    for idx, (label, sym) in enumerate(commods):
+    for label, sym in commods:
         hc = get_ticker_hist(sym, "6mo")
         if not hc.empty:
             v1_u, v0_u = hc["Close"].tail(1).squeeze(), hc["Close"].tail(2).head(1).squeeze()
-            cols_c[idx+1].metric(f"{label} (€)", f"{v1_u/eurusd:,.2f} €", f"{((v1_u-v0_u)/v0_u)*100:+.2f} %")
+            cols_c.pop(0).metric(f"{label} (€)", f"{v1_u/eurusd:,.2f} €", f"{((v1_u-v0_u)/v0_u)*100:+.2f} %")
             if not fx.empty:
                 al = pd.DataFrame({"c": hc["Close"], "fx": fx["Close"]}).dropna()
                 if not al.empty:
@@ -202,4 +196,4 @@ elif sec_num == "4":
     st.markdown(f'<div class="synth-card"><div class="synth-title">{"Procurement Pressure Index" if is_en else "Indice Composite de Pression Achats (Intrants en €)"} : {pression} / 100</div><div>{"Favorable window for long-term supplier price renegotiation." if (is_en and pression < 55) else ("Fenêtre favorable pour verrouiller des contrats longs ou renégocier les tarifs fournisseurs." if pression < 55 else "Tension sur les intrants : activer les couvertures.")}</div></div>', unsafe_allow_html=True)
     if series_eur:
         st.plotly_chart(style_chart(px.line(pd.DataFrame(series_eur)), 350), use_container_width=True)
-        st.markdown('<div class="credit-tag">Chart: Charles Tsimi | Sources: ICE Futures · COMEX · CBOT · ECB (EUR/USD)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : ICE Futures · COMEX · CBOT · BCE (EUR/USD)</div>', unsafe_allow_html=True)
