@@ -96,7 +96,8 @@ if st.session_state["admin_unlocked"]:
     labels_en.append("🔒 Private Notes")
 
 tabs = st.tabs(labels_en if is_en else labels_fr)
-with tabs.pop(0):
+it_tabs = iter(tabs)
+with next(it_tabs):
     st.subheader("French Macroeconomic Trajectory (2006–2026) & Cross-Analysis" if is_en else "Indicateurs Économiques de la France (2006–2026 & Croisements)")
     last, prev = DATA_FR.tail(1).squeeze(), DATA_FR.tail(2).head(1).squeeze()
     pmi_comp = 48.2
@@ -145,7 +146,7 @@ with tabs.pop(0):
         st.plotly_chart(style_chart(fig_p), use_container_width=True)
         st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : INSEE (Comptes Nationaux) · Eurostat</div>', unsafe_allow_html=True)
 
-with tabs.pop(0):
+with next(it_tabs):
     st.subheader("Paris Stock Exchange (CAC 40) & Live Market Flash" if is_en else "Bourse de Paris — CAC 40 & Flash Infos Financiers")
     cac = get_ticker_hist("^FCHI", "1y")
     col_b1, col_b2 = st.columns([1.4, 1.0])
@@ -162,7 +163,7 @@ with tabs.pop(0):
         for it in get_rss("CAC+40+Bourse+Paris+Euronext+Boursorama+OR+Les+Echos", 4):
             st.markdown(f'<div class="info-card"><b><a href="{it["link"]}" target="_blank" style="text-decoration:none;color:#0B1F3A;">{it["title"]}</a></b><br><span style="font-size:0.8rem;color:#64748B;">{it["date"]}</span></div>', unsafe_allow_html=True)
 
-with tabs.pop(0):
+with next(it_tabs):
     st.subheader("Eurozone & Global Economy (GDP & Growth)" if is_en else "Zone Euro & Économie Mondiale (Croissance & PIB)")
     df_w = pd.DataFrame({"Année": list(range(2019, 2027)), "France": (1.9, -7.5, 6.8, 2.6, 1.1, 1.1, 0.7, 1.0), "Zone Euro": (1.6, -6.1, 5.9, 3.4, 0.4, 0.8, 1.1, 1.3), "USA": (2.5, -2.2, 6.1, 2.5, 2.9, 2.8, 2.0, 2.1), "China": (6.0, 2.2, 8.4, 3.0, 5.2, 5.0, 4.5, 4.2), "World": (2.8, -2.7, 6.5, 3.5, 3.3, 3.2, 3.2, 3.3)})
     e1, e2, e3, e4 = st.columns(4)
@@ -173,7 +174,7 @@ with tabs.pop(0):
     st.plotly_chart(style_chart(px.line(df_w, x="Année", y=["France", "Zone Euro", "USA", "China", "World"], markers=True), 380), use_container_width=True)
     st.markdown('<div class="credit-tag">Graphique : Charles Tsimi | Sources : FMI (WEO) · Eurostat · Banque Mondiale · BCE</div>', unsafe_allow_html=True)
 
-with tabs.pop(0):
+with next(it_tabs):
     st.subheader("Commodities & Procurement Decision Support (Real EUR € Costs)" if is_en else "Matières Premières & Décision Achats (Coûts Réels en Euros €)")
     fx = get_ticker_hist("EURUSD=X", "6mo")
     eurusd = fx["Close"].tail(1).squeeze() if not fx.empty else 1.08
